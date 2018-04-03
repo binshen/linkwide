@@ -1,15 +1,59 @@
-import React from 'react';
-import { Router, Route, Switch } from 'dva/router';
-import IndexPage from './routes/IndexPage';
+import React from 'react'
+import PropTypes from 'prop-types'
+import { Switch, Route, Redirect, routerRedux } from 'dva/router'
+import dynamic from 'dva/dynamic'
+import App from 'routes/app'
+import { LocaleProvider } from 'antd'
+import enUS from 'antd/lib/locale-provider/en_US'
 
-function RouterConfig({ history }) {
+const { ConnectedRouter } = routerRedux
+
+const Routers = function ({ history, app }) {
+  const error = dynamic({
+    app,
+    component: () => import('./routes/error'),
+  })
+  const routes = [
+    {
+      path: '/dashboard',
+      models: () => [import('./models/dashboard')],
+      component: () => import('./routes/dashboard/'),
+    }, {
+      path: '/login',
+      models: () => [import('./models/login')],
+      component: () => import('./routes/login/'),
+    }
+  ]
+
   return (
-    <Router history={history}>
-      <Switch>
-        <Route path="/" exact component={IndexPage} />
-      </Switch>
-    </Router>
-  );
+    <ConnectedRouter history={history}>
+      <LocaleProvider locale={enUS}>
+        <App>
+          <Switch>
+            <Route exact path="/" render={() => (<Redirect to="/dashboard" />)} />
+            {
+              routes.map(({ path, ...dynamics }, key) => (
+                <Route key={key}
+                       exact
+                       path={path}
+                       component={dynamic({
+                         app,
+                         ...dynamics,
+                       })}
+                />
+              ))
+            }
+            <Route component={error} />
+          </Switch>
+        </App>
+      </LocaleProvider>
+    </ConnectedRouter>
+  )
 }
 
-export default RouterConfig;
+Routers.propTypes = {
+  history: PropTypes.object,
+  app: PropTypes.object,
+}
+
+export default Routers
